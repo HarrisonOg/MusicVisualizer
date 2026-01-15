@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+option java_package = "com.harrisonog.musicvisualizer.data.datastore";
+option java_multiple_files = true;
+
+message UserPreferences {
+  // Playback preferences
+  RepeatMode repeat_mode = 1;
+  bool shuffle_enabled = 2;
+
+  // Visualizer preferences
+  VisualizationType visualizer_type = 3;
+  int32 visualizer_sensitivity = 4; // 0-100 scale
+  bool visualizer_enabled = 5;
+
+  // Audio preferences
+  int32 volume = 6; // 0-100 scale
+
+  // Theme preferences
+  Theme theme = 7;
+
+  // Last playback state (for restoration)
+  int64 last_song_id = 8;
+  int64 last_position_ms = 9;
+  int64 last_updated_timestamp = 10;
+}
+
+enum RepeatMode {
+  REPEAT_OFF = 0;
+  REPEAT_ALL = 1;
+  REPEAT_ONE = 2;
+}
+
+enum VisualizationType {
+  WAVEFORM = 0;
+  SPECTRUM = 1;
+  CIRCULAR = 2;
+  PARTICLES = 3;
+}
+
+enum Theme {
+  SYSTEM = 0;
+  LIGHT = 1;
+  DARK = 2;
+}

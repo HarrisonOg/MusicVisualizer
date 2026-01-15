@@ -7,6 +7,11 @@ plugins {
     alias(libs.plugins.protobuf)
 }
 
+// Room schema export for migrations
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "com.harrisonog.musicvisualizer"
     compileSdk = 36

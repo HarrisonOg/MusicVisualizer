@@ -52,7 +52,7 @@ class FftAudioProcessor @Inject constructor() : BaseAudioProcessor() {
     val frames: SharedFlow<VisualizerFrame> = _frames.asSharedFlow()
 
     private var inputAudioFormat: AudioProcessor.AudioFormat = AudioProcessor.AudioFormat.NOT_SET
-    private var isActive = false
+    private var processingEnabled = false
 
     override fun onConfigure(
         inputAudioFormat: AudioProcessor.AudioFormat
@@ -64,10 +64,10 @@ class FftAudioProcessor @Inject constructor() : BaseAudioProcessor() {
                 "encoding=${inputAudioFormat.encoding}")
 
         // Validate encoding - must be PCM 16-bit or PCM Float
-        isActive = inputAudioFormat.encoding == C.ENCODING_PCM_16BIT ||
+        processingEnabled = inputAudioFormat.encoding == C.ENCODING_PCM_16BIT ||
                 inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT
 
-        if (!isActive) {
+        if (!processingEnabled) {
             Log.w(TAG, "Unsupported encoding: ${inputAudioFormat.encoding}, FFT disabled")
         }
 
@@ -76,36 +76,51 @@ class FftAudioProcessor @Inject constructor() : BaseAudioProcessor() {
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
-        if (!isActive) {
-            return
+        // Save original buffer state - we need to pass audio through after analysis
+        val originalPosition = inputBuffer.position()
+        val originalLimit = inputBuffer.limit()
+
+        if (isActive) {
+            try {
+                // 1. Convert to float samples based on encoding
+                val samples = when (inputAudioFormat.encoding) {
+                    C.ENCODING_PCM_16BIT -> convertPcm16ToFloat(inputBuffer)
+                    C.ENCODING_PCM_FLOAT -> convertPcmFloatToFloat(inputBuffer)
+                    else -> FloatArray(0)
+                }
+
+                if (samples.isNotEmpty()) {
+                    // 2. Handle stereo -> mono conversion
+                    val monoSamples = if (inputAudioFormat.channelCount == 2) {
+                        convertStereoToMono(samples)
+                    } else {
+                        samples
+                    }
+
+                    // 3. Accumulate in ring buffer
+                    sampleBuffer.write(monoSamples)
+
+                    // 4. Process when we have enough samples
+                    while (sampleBuffer.hasAvailable(fftSize)) {
+                        processFrame()
+                        sampleBuffer.advance(hopSize) // Overlap
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error processing audio input", e)
+            }
         }
 
-        try {
-            // 1. Convert to float samples based on encoding
-            val samples = when (inputAudioFormat.encoding) {
-                C.ENCODING_PCM_16BIT -> convertPcm16ToFloat(inputBuffer)
-                C.ENCODING_PCM_FLOAT -> convertPcmFloatToFloat(inputBuffer)
-                else -> return
-            }
+        // CRITICAL: Reset buffer and pass audio through to audio sink
+        // Without this, the audio sink starves and playback fails
+        inputBuffer.position(originalPosition)
+        inputBuffer.limit(originalLimit)
 
-            // 2. Handle stereo -> mono conversion
-            val monoSamples = if (inputAudioFormat.channelCount == 2) {
-                convertStereoToMono(samples)
-            } else {
-                samples
-            }
-
-            // 3. Accumulate in ring buffer
-            sampleBuffer.write(monoSamples)
-
-            // 4. Process when we have enough samples
-            while (sampleBuffer.hasAvailable(fftSize)) {
-                processFrame()
-                sampleBuffer.advance(hopSize) // Overlap
-            }
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error processing audio input", e)
+        val inputSize = inputBuffer.remaining()
+        if (inputSize > 0) {
+            val outputBuffer = replaceOutputBuffer(inputSize)
+            outputBuffer.put(inputBuffer)
+            outputBuffer.flip()
         }
     }
 
@@ -231,10 +246,12 @@ class FftAudioProcessor @Inject constructor() : BaseAudioProcessor() {
     override fun onReset() {
         super.onReset()
         sampleBuffer.clear()
-        isActive = false
+        processingEnabled = false
     }
 
-    override fun isActive(): Boolean = isActive
+    // BaseAudioProcessor.isActive() just returns false - no super call needed
+    @Suppress("MissingSuperCall")
+    override fun isActive(): Boolean = processingEnabled
 
     companion object {
         private const val TAG = "FftAudioProcessor"

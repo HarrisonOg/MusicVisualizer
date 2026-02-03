@@ -1,7 +1,6 @@
 package com.harrisonog.musicvisualizer.presentation.visualizer
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.harrisonog.musicvisualizer.domain.model.VisualizerFrame
 import com.harrisonog.musicvisualizer.presentation.visualizer.visualizations.CircularRenderer
 import com.harrisonog.musicvisualizer.presentation.visualizer.visualizations.ParticleRenderer
@@ -10,10 +9,8 @@ import com.harrisonog.musicvisualizer.presentation.visualizer.visualizations.Wav
 import com.harrisonog.musicvisualizer.service.visualizer.VisualizerEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @HiltViewModel
@@ -23,13 +20,10 @@ class VisualizerViewModel @Inject constructor(
 
     /**
      * Smoothed visualizer frames for rendering.
+     * Directly expose the engine's StateFlow - no need to wrap again since
+     * VisualizerEngine.smoothedFrames is already a StateFlow with WhileSubscribed.
      */
     val visualizerFrame: StateFlow<VisualizerFrame> = visualizerEngine.smoothedFrames
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = VisualizerFrame.EMPTY
-        )
 
     /**
      * Available renderers.

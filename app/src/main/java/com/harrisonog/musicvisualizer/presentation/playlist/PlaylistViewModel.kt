@@ -1,5 +1,6 @@
 package com.harrisonog.musicvisualizer.presentation.playlist
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.harrisonog.musicvisualizer.domain.model.Playlist
@@ -70,11 +71,17 @@ class PlaylistViewModel @Inject constructor(
     }
 
     fun playPlaylist(playlist: Playlist, shuffle: Boolean = false) {
-        if (playlist.songs.isNotEmpty()) {
-            if (shuffle) {
-                musicServiceConnection.setShuffleMode(true)
+        viewModelScope.launch {
+            try {
+                if (playlist.songs.isNotEmpty()) {
+                    if (shuffle) {
+                        musicServiceConnection.setShuffleMode(true)
+                    }
+                    musicServiceConnection.playAllSuspending(playlist.songs, 0)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to play playlist", e)
             }
-            musicServiceConnection.playAll(playlist.songs, 0)
         }
     }
 
@@ -94,5 +101,9 @@ class PlaylistViewModel @Inject constructor(
         viewModelScope.launch {
             playlistRepository.reorderSongs(playlistId, songId, newPosition)
         }
+    }
+
+    companion object {
+        private const val TAG = "PlaylistViewModel"
     }
 }

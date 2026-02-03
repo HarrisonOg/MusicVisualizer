@@ -1,5 +1,6 @@
 package com.harrisonog.musicvisualizer.presentation.player
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.harrisonog.musicvisualizer.domain.model.PlaybackState
@@ -46,11 +47,23 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun play(song: Song) {
-        serviceConnection.play(song)
+        viewModelScope.launch {
+            try {
+                serviceConnection.playSuspending(song)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to play song", e)
+            }
+        }
     }
 
     fun playAll(songs: List<Song>, startIndex: Int = 0) {
-        serviceConnection.playAll(songs, startIndex)
+        viewModelScope.launch {
+            try {
+                serviceConnection.playAllSuspending(songs, startIndex)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to play songs", e)
+            }
+        }
     }
 
     fun addToQueue(song: Song) {
@@ -124,5 +137,9 @@ class PlayerViewModel @Inject constructor(
         super.onCleared()
         // Note: Don't disconnect here as other screens may still need the connection
         // The connection is a singleton and should persist
+    }
+
+    companion object {
+        private const val TAG = "PlayerViewModel"
     }
 }

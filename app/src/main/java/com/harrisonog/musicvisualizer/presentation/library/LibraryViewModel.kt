@@ -1,5 +1,6 @@
 package com.harrisonog.musicvisualizer.presentation.library
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.harrisonog.musicvisualizer.domain.model.Song
@@ -82,19 +83,31 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun playSong(song: Song) {
-        val currentSongs = uiState.value.songs
-        val index = currentSongs.indexOf(song)
-        if (index >= 0) {
-            musicServiceConnection.playAll(currentSongs, index)
-        } else {
-            musicServiceConnection.play(song)
+        viewModelScope.launch {
+            try {
+                val currentSongs = uiState.value.songs
+                val index = currentSongs.indexOf(song)
+                if (index >= 0) {
+                    musicServiceConnection.playAllSuspending(currentSongs, index)
+                } else {
+                    musicServiceConnection.playSuspending(song)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to play song", e)
+            }
         }
     }
 
     fun playAll(startIndex: Int = 0) {
-        val songs = uiState.value.songs
-        if (songs.isNotEmpty()) {
-            musicServiceConnection.playAll(songs, startIndex)
+        viewModelScope.launch {
+            try {
+                val songs = uiState.value.songs
+                if (songs.isNotEmpty()) {
+                    musicServiceConnection.playAllSuspending(songs, startIndex)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to play all songs", e)
+            }
         }
     }
 
@@ -117,5 +130,9 @@ class LibraryViewModel @Inject constructor(
             SortOption.ALBUM -> compareBy(String.CASE_INSENSITIVE_ORDER) { it.album }
             SortOption.DURATION -> compareBy { it.duration }
         }
+    }
+
+    companion object {
+        private const val TAG = "LibraryViewModel"
     }
 }

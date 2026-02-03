@@ -18,6 +18,7 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.metadata.MetadataOutput
 import androidx.media3.exoplayer.text.TextOutput
 import androidx.media3.exoplayer.video.VideoRendererEventListener
+import com.harrisonog.musicvisualizer.service.DebugAnalyticsListener
 import com.harrisonog.musicvisualizer.service.visualizer.FftAudioProcessor
 import dagger.Module
 import dagger.Provides
@@ -91,6 +92,9 @@ object MediaModule {
             .setAudioAttributes(audioAttributes, true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_LOCAL)
-            .build()
+            .build().also { player ->
+                // Add debug analytics listener for detailed logging
+                player.addAnalyticsListener(DebugAnalyticsListener())
+            }
     }
 }

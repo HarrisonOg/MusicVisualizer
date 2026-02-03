@@ -68,6 +68,9 @@ class ParticleRenderer(
     }
 
     override fun render(scope: DrawScope, frame: VisualizerFrame) {
+        // Guard against rendering before dimensions are set
+        if (canvasSize == Size.Zero) return
+
         // Spawn new particles based on audio intensity
         spawnParticles(frame)
 
@@ -188,6 +191,7 @@ class ParticleRenderer(
 
     private fun drawCenterGlow(scope: DrawScope, rms: Float) {
         val glowRadius = 50f + rms * 100f
+        if (glowRadius <= 0f) return
         val glowAlpha = (rms * 0.3f).coerceIn(0.05f, 0.25f)
 
         scope.drawCircle(

@@ -71,6 +71,8 @@ class CircularRenderer(
 
     override fun render(scope: DrawScope, frame: VisualizerFrame) {
         if (frame.magnitudes.isEmpty()) return
+        // Guard against rendering before dimensions are set
+        if (baseRadius <= 0f) return
 
         val magnitudes = downsample(frame.magnitudes, barCount)
 
@@ -133,6 +135,7 @@ class CircularRenderer(
 
     private fun drawCenterGlow(scope: DrawScope, rms: Float) {
         val glowRadius = baseRadius * 0.8f
+        if (glowRadius <= 0f) return
         val glowAlpha = (rms * 0.4f).coerceIn(0.05f, 0.3f)
 
         scope.drawCircle(

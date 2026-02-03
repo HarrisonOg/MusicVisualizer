@@ -68,8 +68,8 @@ fun MusicVisualizerApp() {
                 // Mini-player above bottom navigation
                 AnimatedVisibility(
                     visible = showMiniPlayer,
-                    enter = slideInVertically { it },
-                    exit = slideOutVertically { it }
+                    enter = slideInVertically { -it },
+                    exit = slideOutVertically { -it }
                 ) {
                     MiniPlayer(
                         currentSong = currentSong,

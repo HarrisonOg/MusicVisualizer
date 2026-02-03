@@ -36,16 +36,22 @@ fun MusicVisualizerBottomNavigation(
                 label = { Text(route.title) },
                 selected = selected,
                 onClick = {
-                    navController.navigate(route.route) {
-                        // Pop up to the start destination of the graph to
-                        // avoid building up a large stack of destinations
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
+                    val startDestination = navController.graph.findStartDestination()
+                    if (route.route == startDestination.route) {
+                        // For start destination, pop back to it directly
+                        navController.popBackStack(startDestination.id, inclusive = false)
+                    } else {
+                        navController.navigate(route.route) {
+                            // Pop up to the start destination of the graph to
+                            // avoid building up a large stack of destinations
+                            popUpTo(startDestination.id) {
+                                saveState = true
+                            }
+                            // Avoid multiple copies of the same destination
+                            launchSingleTop = true
+                            // Restore state when reselecting a previously selected item
+                            restoreState = true
                         }
-                        // Avoid multiple copies of the same destination
-                        launchSingleTop = true
-                        // Restore state when reselecting a previously selected item
-                        restoreState = true
                     }
                 }
             )

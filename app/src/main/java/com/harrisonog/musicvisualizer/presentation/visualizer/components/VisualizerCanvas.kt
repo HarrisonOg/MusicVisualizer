@@ -3,6 +3,7 @@ package com.harrisonog.musicvisualizer.presentation.visualizer.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,6 +22,7 @@ fun VisualizerCanvas(
     modifier: Modifier = Modifier
 ) {
     var canvasSize by remember { mutableStateOf(Size.Zero) }
+    var hasAttached by remember(renderer) { mutableStateOf(false) }
 
     Canvas(
         modifier = modifier
@@ -29,10 +31,21 @@ fun VisualizerCanvas(
                 val size = newSize.toSize()
                 if (size != canvasSize) {
                     canvasSize = size
-                    renderer.onSizeChanged(size)
+                    if (!hasAttached && size != Size.Zero) {
+                        renderer.onAttach(size)
+                        hasAttached = true
+                    } else {
+                        renderer.onSizeChanged(size)
+                    }
                 }
             }
     ) {
         renderer.render(this, frame)
+    }
+
+    DisposableEffect(renderer) {
+        onDispose {
+            renderer.onDetach()
+        }
     }
 }
